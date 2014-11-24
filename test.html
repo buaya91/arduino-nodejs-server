@@ -1,0 +1,14 @@
+<html>
+<head>
+	<script src="https://cdn.firebase.com/js/client/2.0.4/firebase.js">
+	
+	</script>	
+</head>
+
+<script type="text/javascript">
+	tempDataRef = new Firebase('https://gen-homework.firebaseio.com/');
+	tempDataRef.on('child_added',function(snapshot){updateUI()});
+	//a callback that update data with changes on firebase
+</script>
+
+</html>
