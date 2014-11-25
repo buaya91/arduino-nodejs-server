@@ -2,7 +2,7 @@
 var http = require('http');
 var fs = require('fs');
 
-var html = fs.readFileSync('test.html');
+var html = fs.readFileSync('index.html');
 http.createServer(function (req, res) {
   res.writeHead(200, {'Content-Type': 'text/html'});
   res.end(html);
@@ -25,12 +25,13 @@ var moment = require('moment-timezone');
 
 setInterval(function(){
 	var temp = getCurrentTemp();
-	var time = moment.tz('Asia/Kuala_Lumpur').format('HH:mm:ss');
+	//var time = moment.tz('Asia/Kuala_Lumpur').format('HH:mm:ss');
+	var time = Date.now();
 	updateDatabase(tempDataStore,temp,time);
-},1000);
+},20*1000);
 
 function getCurrentTemp(){
-	return ((100*Math.random()%20) + 20);
+	return ((100*Math.random()%7) + 30);
 }
 function updateDatabase(dataStore,currentTemp,currentDate){
 	dataStore.child(currentDate).set(

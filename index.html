@@ -7,7 +7,7 @@
 </head>
 
 <body>
-	<div id="container" style="width:100%; height:400px;"></div>
+	<div id="container" style="width:100%; height:400px; margin: 0 auto"></div>
 </body>
 
 <script type="text/javascript">
@@ -26,9 +26,15 @@
 	it should be able to update itself without reloading the page
 	*/
 	var initGraph = function (dataStore) {
+		Highcharts.setOptions({
+			global: {
+				useUTC: false
+			}
+		});
+
 	    $('#container').highcharts({
 	        chart: {
-	            zoomTtype: 'x'
+	            zoomType: 'x'
 	        },
 	        title: {
 	            text: 'Temperature of different locations throughout the day'
@@ -37,25 +43,30 @@
 	        	text: 'Click and drag in the plot area to zoom in'
 	        },
 	        xAxis: {
-	        	type: 'datetime',
-	            text: 'Time'
+	        	type: 'datetime'
+	            //tickInterval: 1*1000,
 	        },
 	        yAxis: {
 	            title: {
-	                text: 'Temperature' //dynamic change needed
+	                text: 'Temperature'
 	            }
 	        },
 		    series: [{
 		    	type: 'line',
-		        name: 'time',    //dynamic needed
+		        name: 'Location Temperature Over Time',    //dynamic needed
 		        data: []
 		    }]
 	    });
 
 	    dataStore.on('child_added',function(snapshot){
-		var newTime = snapshot.val();
+		var newTime = parseInt(snapshot.key());
+		var newTemp = snapshot.val().Temperature;
 		var chart = $('#container').highcharts();
-		chart.series[0].addPoint([newTime, newTime.Temperature],true,false,true);
+		//var dateObj = new Date(newTime);
+		//console.log(newTime + '\n');
+		//console.log(dateObj+'\n');
+		//console.log(snapshot.val().Temperature+'\n');
+		chart.series[0].addPoint([newTime, newTemp],true,false,true);
 		});
 	};	
 
