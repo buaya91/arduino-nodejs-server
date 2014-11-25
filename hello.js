@@ -20,20 +20,20 @@ console.log('Server running at http://127.0.0.1:8124/');
 
 var Firebase = require('firebase');
 var tempDataStore = new Firebase('https://gen-homework.firebaseio.com/');
-tempDataStore = tempDataStore.child('server-temperature');
+tempDataStore = tempDataStore.child('server-temperature').child(process.argv[2]);
 var moment = require('moment-timezone');
 
 setInterval(function(){
 	var temp = getCurrentTemp();
-	var time = moment.tz('Asia/Kuala_Lumpur').format('MMMM Do YYYY, HH:mm:ss');
+	var time = moment.tz('Asia/Kuala_Lumpur').format('HH:mm:ss');
 	updateDatabase(tempDataStore,temp,time);
 },1000);
 
 function getCurrentTemp(){
-	return 20;
+	return ((100*Math.random()%20) + 20);
 }
 function updateDatabase(dataStore,currentTemp,currentDate){
 	dataStore.child(currentDate).set(
-			{"Temperature":currentTemp,"Location":process.argv[2]}
+			{"Temperature":currentTemp}
 		);
 }
