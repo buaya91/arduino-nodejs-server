@@ -3,6 +3,7 @@
 	<script src="https://cdn.firebase.com/js/client/2.0.4/firebase.js"></script>
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
 	<script src="http://code.highcharts.com/highcharts.js"></script>
+	  <meta charset="UTF-8">
 	<style>
        table, th, td {
        border: 1px solid black;
@@ -35,7 +36,6 @@
 	var tempDataRef = tempDataRef.child('server-temperature');
 	var seriesData = [];
 	//function to update ui
-
 	/*
 	create dynamic zoomable timeseries graph using data from firebase
 	it should be able to update itself without reloading the page
@@ -46,7 +46,6 @@
 				useUTC: false
 			}
 		});
-
 	    $('#container').highcharts({
 	        chart: {
 	            zoomType: 'x'
@@ -68,9 +67,6 @@
 	        }
 	    });
 	    //initialize the data using firebase once
-
-
-
 	$('#celsiusbtn').on('change',function(){
 		updatePage();
 	});
@@ -81,19 +77,16 @@
 		updatePage();
 	});
 	}
-
 	function updatePage(){
 		redrawChart();
 		redrawTable();
 	}
-
 	function listenForTemp(dataRef,index){
 		dataRef.on("child_added",function(snapshot){
 			//console.log("temperature key = ",snapshot.key());
 			//console.log(index);
 			var newTime = parseInt(snapshot.key());
 			var newTemp = snapshot.val().Temperature;
-
 			var chart = $('#container').highcharts();
 			//console.log(chart);
 			//console.log('typeof series',Array.isArray(chart.series)?'array':'not array');
@@ -105,15 +98,12 @@
 			redrawChart();
 		});
 	};
-
-
     var series_index = 0;
 	function listenForLocation(dataRef){
 		dataRef.on('child_added',function(snapshot){
 			var key = snapshot.key();
 			
 			console.log("location key = ",key);
-
 			var locationDataRef = dataRef.child(key);
 			var chart = $('#container').highcharts();
 			chart.addSeries({
@@ -122,30 +112,23 @@
 		        name: key,    //dynamic needed
 		        data: []
 		    });
-
 			var si = series_index;
 		    listenForTemp(locationDataRef,series_index);
 		    series_index = series_index+1;
-
 		    console.log('index = '+series_index);
 		});
 	};
-
 	function convertToKelvin(data){
 		return data+273.15;
 	}
-
 	function convertToFahrenheit(data){
 		return data*1.8 + 32;
 	}
-
 	function redrawChart(){
 		var unit = temperatureUnitSelected();
 		var chart = $('#container').highcharts();
 		var series = chart.series;
-
 		
-
 		series.forEach(function(element,s_index,array){
 			var data = seriesData[s_index].slice(0);
 			seriesData[s_index].forEach(function(element,index,array){
@@ -161,10 +144,8 @@
 			
 			element.setData(data,false);	
 		});
-
 		chart.redraw();
 	}
-
 	function temperatureUnitSelected(){
 		if(document.getElementById('kelvinbtn').checked){
 			return 'K';
@@ -175,7 +156,6 @@
 		else
 			return 'C';
 	}
-
 	function getDataForTable(){
 		var chart = $('#container').highcharts();
 		var dt = [];
@@ -189,15 +169,21 @@
 				dt.push([element.name,temp]);
 			}
 		});
-
 		return dt;
 	}
-
 	function redrawTable(){
 		var data = getDataForTable();
+		var tempDisplayed="";
 		console.log(data);
 		$('#table').html('');
-
+		
+		if(temperatureUnitSelected()=='C'){
+		   tempDisplayed="°C";
+		} else if (temperatureUnitSelected()=='K') {
+		   tempDisplayed="°K";
+		}else
+		   tempDisplayed="°F";
+		console.log(tempDisplayed);
 		data.forEach(function(element,index,array){
 			var min = minimum(element[1]);
 			var max = maximum(element[1]);
@@ -206,9 +192,7 @@
 				sum = sum+element;
 			});
 			var avg = sum/element[1].length;
-
 			console.log('average is '+avg);
-
 			var table = '<table>'+
 							'<tr>'+
 								'<th>Location</th>'+
@@ -218,29 +202,23 @@
 							'</tr>'+
 							'<tr>'+
 								'<td>'+element[0]+'</td>'+
-								'<td>'+min+'</td>'+
-								'<td>'+max+'</td>'+
-								'<td>'+avg+'</td>'+
+								'<td>'+min.toFixed(3)+tempDisplayed+'</td>'+
+								'<td>'+max.toFixed(3)+tempDisplayed+'</td>'+
+								'<td>'+avg.toFixed(3)+tempDisplayed+'</td>'+
 							'</tr>'
 						'</table>';
 			$(table).appendTo('#table');
-
 		});
 	}
-
 	function minimum(arr){
 		return Math.min.apply(null, arr);
 	}
-
 	function maximum(arr){
 		return Math.max.apply(null, arr);
 	}
-
 	initGraph();
 	listenForLocation(tempDataRef);
 	
-
-
 </script>
 
 </html>
