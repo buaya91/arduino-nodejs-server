@@ -3,29 +3,44 @@
 	<script src="https://cdn.firebase.com/js/client/2.0.4/firebase.js"></script>
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
 	<script src="http://code.highcharts.com/highcharts.js"></script>
-
+	<style>
+       table, th, td {
+       border: 1px solid black;
+       border-collapse: collapse;
+       }  
+       th, td {
+       padding: 5px;
+        }
+   </style>
 </head>
 
 <body>
 	<div id="container" style="width:100%; height:400px; margin: 0 auto"></div>
+
+	<p>Please choose one of the temperature unit</p>
+    <form id="temperature" action="">
+    <label><input type="radio" name="unit" class="celsiusbtn trigger" value="celsius" data-rel="temperatureCelsius" id="celsiusbtn">Celsius</label>
+    <label><input type="radio" name="unit" class="kelvinbtn trigger" value="kelvin" data-rel="temperatureKelvin" id="kelvinbtn">Kelvin</label>
+	<label><input type="radio" name="unit" class="fahrenheitbtn trigger" value="fahrenheit" data-rel="temperatureFahrenheit" id="fahrenheitbtn">Fahrenheit</label>
+    </form>
+
+    <div id='table'> </div>
 </body>
 
 <script type="text/javascript">
 	/*
 	fetch data from firebase, using callback to achieve realtime updates
 	*/
-	tempDataRef = new Firebase('https://gen-homework.firebaseio.com/');
-	tempDataRef = tempDataRef.child('server-temperature').child('home');
-
-	
-	
+	var tempDataRef = new Firebase('https://gen-homework.firebaseio.com/');
+	var tempDataRef = tempDataRef.child('server-temperature');
+	var seriesData = [];
 	//function to update ui
 
 	/*
 	create dynamic zoomable timeseries graph using data from firebase
 	it should be able to update itself without reloading the page
 	*/
-	var initGraph = function (dataStore) {
+	var initGraph = function () {
 		Highcharts.setOptions({
 			global: {
 				useUTC: false
@@ -50,28 +65,181 @@
 	            title: {
 	                text: 'Temperature'
 	            }
-	        },
-		    series: [{
-		    	type: 'line',
-		        name: 'Location Temperature Over Time',    //dynamic needed
-		        data: []
-		    }]
+	        }
 	    });
+	    //initialize the data using firebase once
 
-	    dataStore.on('child_added',function(snapshot){
-		var newTime = parseInt(snapshot.key());
-		var newTemp = snapshot.val().Temperature;
-		var chart = $('#container').highcharts();
-		//var dateObj = new Date(newTime);
-		//console.log(newTime + '\n');
-		//console.log(dateObj+'\n');
-		//console.log(snapshot.val().Temperature+'\n');
-		chart.series[0].addPoint([newTime, newTemp],true,false,true);
+
+
+	$('#celsiusbtn').on('change',function(){
+		updatePage();
+	});
+	$('#kelvinbtn').on('change',function(){
+		updatePage();
+	});
+	$('#fahrenheitbtn').on('change',function(){
+		updatePage();
+	});
+	}
+
+	function updatePage(){
+		redrawChart();
+		redrawTable();
+	}
+
+	function listenForTemp(dataRef,index){
+		dataRef.on("child_added",function(snapshot){
+			//console.log("temperature key = ",snapshot.key());
+			//console.log(index);
+			var newTime = parseInt(snapshot.key());
+			var newTemp = snapshot.val().Temperature;
+
+			var chart = $('#container').highcharts();
+			//console.log(chart);
+			//console.log('typeof series',Array.isArray(chart.series)?'array':'not array');
+			//console.log(chart.series);
+			if(seriesData.length <= index)
+				seriesData.push([]);
+			seriesData[index].push([newTime, newTemp]);
+			//chart.series[index].addPoint([newTime, newTemp],false);
+			redrawChart();
 		});
-	};	
+	};
 
-	initGraph(tempDataRef);
+
+    var series_index = 0;
+	function listenForLocation(dataRef){
+		dataRef.on('child_added',function(snapshot){
+			var key = snapshot.key();
+			
+			console.log("location key = ",key);
+
+			var locationDataRef = dataRef.child(key);
+			var chart = $('#container').highcharts();
+			chart.addSeries({
+		    	type: 'line',
+		    	index: series_index,
+		        name: key,    //dynamic needed
+		        data: []
+		    });
+
+			var si = series_index;
+		    listenForTemp(locationDataRef,series_index);
+		    series_index = series_index+1;
+
+		    console.log('index = '+series_index);
+		});
+	};
+
+	function convertToKelvin(data){
+		return data+273.15;
+	}
+
+	function convertToFahrenheit(data){
+		return data*1.8 + 32;
+	}
+
+	function redrawChart(){
+		var unit = temperatureUnitSelected();
+		var chart = $('#container').highcharts();
+		var series = chart.series;
+
+		
+
+		series.forEach(function(element,s_index,array){
+			var data = seriesData[s_index].slice(0);
+			seriesData[s_index].forEach(function(element,index,array){
+				if(unit == 'F'){
+					temp = convertToFahrenheit(element[1]);
+					data[index] = [element[0],temp];
+				}
+				else if(unit == 'K'){
+					temp = convertToKelvin(element[1]);
+					data[index] = [element[0],temp];
+				}
+			})
+			
+			element.setData(data,false);	
+		});
+
+		chart.redraw();
+	}
+
+	function temperatureUnitSelected(){
+		if(document.getElementById('kelvinbtn').checked){
+			return 'K';
+		}
+		else if(document.getElementById('fahrenheitbtn').checked){
+			return 'F';
+		}
+		else
+			return 'C';
+	}
+
+	function getDataForTable(){
+		var chart = $('#container').highcharts();
+		var dt = [];
+		chart.series.forEach(function(element,index,array){
+			if(element.visible){
+				var temp = [];
+				element.data.forEach(function(element,index,array){
+					console.log(element.y);
+					temp.push(element.y);
+				});
+				dt.push([element.name,temp]);
+			}
+		});
+
+		return dt;
+	}
+
+	function redrawTable(){
+		var data = getDataForTable();
+		console.log(data);
+		$('#table').html('');
+
+		data.forEach(function(element,index,array){
+			var min = minimum(element[1]);
+			var max = maximum(element[1]);
+			var sum = 0;
+			element[1].forEach(function(element,index,array){
+				sum = sum+element;
+			});
+			var avg = sum/element[1].length;
+
+			console.log('average is '+avg);
+
+			var table = '<table>'+
+							'<tr>'+
+								'<th>Location</th>'+
+								'<th>Min</th>'+
+								'<th>Max</th>'+
+								'<th>Average</th>'+
+							'</tr>'+
+							'<tr>'+
+								'<td>'+element[0]+'</td>'+
+								'<td>'+min+'</td>'+
+								'<td>'+max+'</td>'+
+								'<td>'+avg+'</td>'+
+							'</tr>'
+						'</table>';
+			$(table).appendTo('#table');
+
+		});
+	}
+
+	function minimum(arr){
+		return Math.min.apply(null, arr);
+	}
+
+	function maximum(arr){
+		return Math.max.apply(null, arr);
+	}
+
+	initGraph();
+	listenForLocation(tempDataRef);
 	
+
 
 </script>
 
